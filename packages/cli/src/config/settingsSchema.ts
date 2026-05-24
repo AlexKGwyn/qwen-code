@@ -2686,6 +2686,17 @@ const SETTINGS_SCHEMA = {
           'Config files remain at ~/.qwen (or QWEN_HOME if set). Env var QWEN_RUNTIME_DIR takes priority.',
         showInDialog: false,
       },
+      llamaCppSlotsBaseUrl: {
+        type: 'string',
+        label: 'llama.cpp Slots Base URL',
+        category: 'Advanced',
+        requiresRestart: false,
+        default: undefined as string | undefined,
+        description:
+          'Base URL for llama.cpp server (e.g. "https://host:port"). ' +
+          'The active model ID is appended as /slots?model=<id> to show prompt processing progress.',
+        showInDialog: false,
+      },
     },
   },
 

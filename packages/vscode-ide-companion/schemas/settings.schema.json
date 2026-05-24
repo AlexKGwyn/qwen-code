@@ -1262,6 +1262,10 @@
         "runtimeOutputDir": {
           "description": "Custom directory for runtime output (temp files, debug logs, session data, todos, etc.). Config files remain at ~/.qwen (or QWEN_HOME if set). Env var QWEN_RUNTIME_DIR takes priority.",
           "type": "string"
+        },
+        "llamaCppSlotsBaseUrl": {
+          "description": "Base URL for llama.cpp server (e.g. \"https://host:port\"). The active model ID is appended as /slots?model=<id> to show prompt processing progress.",
+          "type": "string"
         }
       }
     },

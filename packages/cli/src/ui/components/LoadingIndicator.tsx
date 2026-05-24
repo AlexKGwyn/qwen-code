@@ -16,6 +16,10 @@ import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import { useAnimationFrame } from '../hooks/useAnimationFrame.js';
 import { isNarrowWidth } from '../utils/isNarrowWidth.js';
 import { t } from '../../i18n/index.js';
+import {
+  type LlamaCppProgress,
+  formatPromptProgress,
+} from '../hooks/useLlamaCppProgress.js';
 
 interface LoadingIndicatorProps {
   currentLoadingPhrase?: string;
@@ -41,6 +45,8 @@ interface LoadingIndicatorProps {
    * @default true
    */
   isReceivingContent?: boolean;
+  /** llama.cpp prompt processing progress (shown instead of witty phrase). */
+  promptProgress?: LlamaCppProgress | null;
 }
 
 export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
@@ -54,6 +60,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
   isStreaming,
   showResponseTokensPerSecond = false,
   isReceivingContent = true,
+  promptProgress,
 }) => {
   const streamingState = useStreamingContext();
   const { columns: terminalWidth } = useTerminalSize();
@@ -73,10 +80,9 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
     return null;
   }
 
-  // The spinner row shows status only: phrase, timer, token estimate, and the
-  // cancel affordance. Model reasoning lives in the collapsible thinking block
-  // in history, not here.
-  const primaryText = currentLoadingPhrase;
+  const primaryText = promptProgress
+    ? formatPromptProgress(promptProgress)
+    : currentLoadingPhrase;
 
   const streamingTokens = streamingCharsRef ? Math.round(animatedChars / 4) : 0;
   const outputTokens = (candidatesTokens ?? 0) + streamingTokens;

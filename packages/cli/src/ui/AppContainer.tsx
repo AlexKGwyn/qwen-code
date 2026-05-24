@@ -168,6 +168,7 @@ import { useBracketedPaste } from './hooks/useBracketedPaste.js';
 import { useKeypress, type Key } from './hooks/useKeypress.js';
 import { keyMatchers, Command } from './keyMatchers.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
+import { useLlamaCppProgress } from './hooks/useLlamaCppProgress.js';
 import { useTerminalProgress } from './hooks/useTerminalProgress.js';
 import { useFolderTrust } from './hooks/useFolderTrust.js';
 import { useMcpApproval } from './hooks/useMcpApproval.js';
@@ -3190,6 +3191,13 @@ export const AppContainer = (props: AppContainerProps) => {
     hasExecutingTool,
   );
 
+  const promptProgress = useLlamaCppProgress(
+    settings.merged.advanced?.llamaCppSlotsBaseUrl,
+    currentModel,
+    streamingState,
+    isReceivingContent,
+  );
+
   useAttentionNotifications({
     isFocused,
     streamingState,
@@ -3855,6 +3863,7 @@ export const AppContainer = (props: AppContainerProps) => {
       // Real-time token display
       streamingResponseLengthRef,
       isReceivingContent,
+      promptProgress,
       // Session name
       sessionName,
       setSessionName,
@@ -3996,6 +4005,7 @@ export const AppContainer = (props: AppContainerProps) => {
       // Real-time token display
       streamingResponseLengthRef,
       isReceivingContent,
+      promptProgress,
       // Session name
       sessionName,
       setSessionName,

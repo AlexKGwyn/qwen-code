@@ -91,6 +91,7 @@ export const Composer = () => {
           isStreaming={isStreaming}
           showResponseTokensPerSecond={config.getShowResponseTokensPerSecond()}
           isReceivingContent={isReceivingContent}
+          promptProgress={uiState.promptProgress}
         />
       )}
       {/*

@@ -200,6 +200,10 @@ export interface UIState {
   streamingResponseLengthRef: React.RefObject<number>;
   // True = receiving content (↓), false = waiting for API response (↑)
   isReceivingContent: boolean;
+  // llama.cpp prompt processing progress (null when unavailable)
+  promptProgress:
+    | import('../hooks/useLlamaCppProgress.js').LlamaCppProgress
+    | null;
   // Session custom name (set via /rename)
   sessionName: string | null;
   setSessionName: (name: string | null) => void;
