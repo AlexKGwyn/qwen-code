@@ -2031,6 +2031,9 @@ export async function loadCliConfig(
     mcpServers,
     topTierMcpServers,
     pendingMcpServers,
+    preloadMcpServers: settings.advanced?.preloadMcpServers as
+      | string[]
+      | undefined,
     allowedMcpServers: allowedMcpServers
       ? Array.from(allowedMcpServers)
       : undefined,

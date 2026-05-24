@@ -1031,6 +1031,9 @@ export async function discoverTools(
           continue;
         }
 
+        const alwaysLoad =
+          mcpServerConfig.alwaysLoadTools === true ||
+          cliConfig?.shouldPreloadMcpServer(mcpServerName) === true;
         discoveredTools.push(
           new DiscoveredMCPTool(
             mcpCallableTool,
@@ -1045,7 +1048,7 @@ export async function discoverTools(
             mcpTimeout,
             cliConfig?.getMcpToolIdleTimeoutMs?.(),
             annotationsMap.get(funcDecl.name!),
-            mcpServerConfig.alwaysLoadTools === true,
+            alwaysLoad,
           ),
         );
       } catch (error) {

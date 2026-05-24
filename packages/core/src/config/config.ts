@@ -904,6 +904,8 @@ export interface ConfigParameters {
    * same way boot did. See `assembleMcpServers`.
    */
   topTierMcpServers?: Record<string, MCPServerConfig>;
+  /** MCP server names whose tools should skip deferral (loaded upfront). */
+  preloadMcpServers?: string[];
   lsp?: {
     enabled?: boolean;
   };
@@ -1530,6 +1532,7 @@ export class Config {
     | Record<string, MCPServerConfig>
     | undefined;
   private readonly runtimeMcpServers = new Map<string, MCPServerConfig>();
+  private readonly preloadMcpServers: ReadonlySet<string>;
   private readonly lspEnabled: boolean;
   private lspClient?: LspClient;
   private lspInitializationError?: string;
@@ -1764,6 +1767,7 @@ export class Config {
     this.mcpServerCommand = params.mcpServerCommand;
     this.mcpServers = params.mcpServers;
     this.topTierMcpServers = params.topTierMcpServers;
+    this.preloadMcpServers = new Set(params.preloadMcpServers ?? []);
     this.lspEnabled = params.lsp?.enabled ?? false;
     this.lspClient = params.lspClient;
     this.allowedMcpServers = params.allowedMcpServers;
@@ -4178,6 +4182,10 @@ export class Config {
     this.pendingMcpServers = this.pendingMcpServers.filter(
       (name) => name !== serverName,
     );
+  }
+
+  shouldPreloadMcpServer(serverName: string): boolean {
+    return this.preloadMcpServers.has(serverName);
   }
 
   addMcpServers(servers: Record<string, MCPServerConfig>): void {

@@ -2697,6 +2697,19 @@ const SETTINGS_SCHEMA = {
           'The active model ID is appended as /slots?model=<id> to show prompt processing progress.',
         showInDialog: false,
       },
+      preloadMcpServers: {
+        type: 'array',
+        label: 'Preload MCP Server Tools',
+        category: 'Advanced',
+        requiresRestart: true,
+        default: [] as string[],
+        description:
+          'List of MCP server names whose tools should be included in the initial ' +
+          'tool declarations instead of being deferred behind ToolSearch. ' +
+          'Avoids KV cache invalidation on local inference backends.',
+        showInDialog: false,
+        mergeStrategy: MergeStrategy.UNION,
+      },
     },
   },
 
