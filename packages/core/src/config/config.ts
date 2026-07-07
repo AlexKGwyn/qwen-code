@@ -1061,6 +1061,7 @@ export interface ConfigParameters {
   inputFormat?: InputFormat;
   outputFormat?: OutputFormat;
   skipStartupContext?: boolean;
+  skipGitStatus?: boolean;
   bareMode?: boolean;
   sdkMode?: boolean;
   sessionSubagents?: SubagentConfig[];
@@ -1659,6 +1660,7 @@ export class Config {
   private readonly skipLoopDetection: boolean;
   private readonly maxToolCallsPerTurn: number;
   private readonly skipStartupContext: boolean;
+  private readonly skipGitStatus: boolean;
   private readonly bareMode: boolean;
   private readonly safeMode: boolean;
   private readonly warnings: string[];
@@ -1895,6 +1897,7 @@ export class Config {
     this.maxToolCallsPerTurn =
       params.maxToolCallsPerTurn ?? DEFAULT_MAX_TOOL_CALLS_PER_TURN;
     this.skipStartupContext = params.skipStartupContext ?? false;
+    this.skipGitStatus = params.skipGitStatus ?? false;
     this.bareMode = params.bareMode ?? false;
     this.safeMode = params.safeMode ?? isSafeModeEnv();
     if (this.safeMode) {
@@ -5717,6 +5720,10 @@ export class Config {
 
   getSkipStartupContext(): boolean {
     return this.skipStartupContext;
+  }
+
+  getSkipGitStatus(): boolean {
+    return this.skipGitStatus;
   }
 
   getBareMode(): boolean {

@@ -1450,6 +1450,16 @@ const SETTINGS_SCHEMA = {
           'Avoid sending the workspace startup context at the beginning of each session.',
         showInDialog: false,
       },
+      skipGitStatus: {
+        type: 'boolean',
+        label: 'Skip Git Status',
+        category: 'Model',
+        requiresRestart: true,
+        default: false,
+        description:
+          'Do not append the git branch/status/log snapshot to the system prompt. Recommended for local inference backends: git status changes between restarts invalidate the cached system-prompt prefix.',
+        showInDialog: false,
+      },
       enableOpenAILogging: {
         type: 'boolean',
         label: 'Enable OpenAI Logging',
