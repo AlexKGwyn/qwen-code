@@ -660,6 +660,11 @@
           "type": "boolean",
           "default": false
         },
+        "skipGitStatus": {
+          "description": "Do not append the git branch/status/log snapshot to the system prompt. Recommended for local inference backends: git status changes between restarts invalidate the cached system-prompt prefix.",
+          "type": "boolean",
+          "default": false
+        },
         "enableOpenAILogging": {
           "description": "Enable OpenAI logging.",
           "type": "boolean",
