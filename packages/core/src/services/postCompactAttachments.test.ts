@@ -1218,6 +1218,42 @@ describe('postProcessSummary', () => {
     expect(out).not.toContain('still thinking');
     expect(out).toMatch(/resume.*prior task/i);
   });
+
+  it('does NOT truncate the snapshot at a quoted <analysis> substring inside it', () => {
+    // Regression: the summarizer echoes the kick-off instruction
+    // ("First, reason in your <analysis> block. Then, produce the
+    // <state_snapshot> XML.") verbatim inside the snapshot when
+    // recording user messages. The unclosed-tag fallback used to treat
+    // that quoted tag as a truncated scratchpad and strip everything
+    // from it to end-of-string, silently deleting most of the summary.
+    const raw = [
+      '<analysis>real scratchpad reasoning</analysis>',
+      '<state_snapshot>',
+      '<primary_request_and_intent>',
+      '3. "First, reason in your <analysis> block. Then, produce the <state_snapshot> XML."',
+      '</primary_request_and_intent>',
+      '<files_and_code_sections>important file context</files_and_code_sections>',
+      '<next_step>continue the migration</next_step>',
+      '</state_snapshot>',
+    ].join('\n');
+    const out = postProcessSummary(raw);
+    expect(out).not.toContain('real scratchpad reasoning');
+    expect(out).toContain('First, reason in your <analysis> block');
+    expect(out).toContain('important file context');
+    expect(out).toContain('<next_step>continue the migration</next_step>');
+    expect(out).toContain('</state_snapshot>');
+  });
+
+  it('keeps a quoted <analysis> substring even without a leading scratchpad block', () => {
+    // Same quoting hazard, but the model skipped the scratchpad
+    // entirely — the closed-tag pass matches nothing and the fallback
+    // sees the quoted tag first.
+    const raw =
+      '<state_snapshot>user said "reason in your <analysis> block"\n<next_step>finish tests</next_step>\n</state_snapshot>';
+    const out = postProcessSummary(raw);
+    expect(out).toContain('reason in your <analysis> block');
+    expect(out).toContain('<next_step>finish tests</next_step>');
+  });
 });
 
 describe('composePostCompactHistory — plan-mode reminder', () => {

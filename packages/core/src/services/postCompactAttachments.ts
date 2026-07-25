@@ -515,20 +515,35 @@ const RESUME_TRAILER =
  *    nested `<analysis>` tags, this pattern will leak content. The
  *    compression prompt is under our control, so we keep the pattern
  *    strict rather than over-engineering.
- *  - The unclosed-tag fallback (`<analysis>[\s\S]*$`) catches the case
- *    where the model started an `<analysis>` block and ran out of
- *    output tokens before closing it. Without this, the closed-tag
- *    regex above misses and the entire scratchpad leaks into history
- *    via the fallback path in `postProcessSummary`.
+ *  - The unclosed-tag fallback catches the case where the model started
+ *    an `<analysis>` block and ran out of output tokens before closing
+ *    it. Without this, the closed-tag regex above misses and the entire
+ *    scratchpad leaks into history via the fallback path in
+ *    `postProcessSummary`.
+ *  - The fallback must NOT treat a QUOTED `<analysis>` substring inside
+ *    the snapshot as an unclosed scratchpad. The summarizer routinely
+ *    echoes the kick-off instruction ("First, reason in your <analysis>
+ *    block...") verbatim when recording user messages, and that quoted
+ *    tag has no closing tag — a naive strip-to-end-of-string from it
+ *    silently deletes the rest of the snapshot (all task memory). The
+ *    `(?![\s\S]*<\/state_snapshot>)` guard disambiguates: a genuinely
+ *    truncated scratchpad never reaches a completed snapshot, so an
+ *    unclosed `<analysis>` followed by `</state_snapshot>` is quoted
+ *    content and must be kept.
  */
 export function stripAnalysisBlock(rawSummary: string): string {
   // First pass: strip well-formed `<analysis>...</analysis>` blocks
   // (handles multiple via `/g`, newlines via `[\s\S]`).
   let result = rawSummary.replace(/<analysis>[\s\S]*?<\/analysis>\s*/g, '');
-  // Second pass: strip any remaining unclosed `<analysis>` tag (the
-  // model ran out of output tokens before closing). Uses an
-  // end-of-string anchor since there's no closing tag to stop at.
-  result = result.replace(/<analysis>[\s\S]*$/g, '');
+  // Second pass: strip a remaining unclosed `<analysis>` tag (the model
+  // ran out of output tokens before closing). Uses an end-of-string
+  // anchor since there's no closing tag to stop at — but only when no
+  // `</state_snapshot>` follows the tag, so quoted `<analysis>`
+  // substrings inside a completed snapshot are left intact.
+  result = result.replace(
+    /<analysis>(?![\s\S]*<\/state_snapshot>)[\s\S]*$/,
+    '',
+  );
   return result.trim();
 }
 
