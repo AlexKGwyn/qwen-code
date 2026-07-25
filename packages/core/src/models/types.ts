@@ -17,6 +17,8 @@ import type { ConfigSources } from '../utils/configResolver.js';
 export interface ModelCapabilities {
   /** Supports image/vision inputs */
   vision?: boolean;
+  /** Can run the normal agent tool loop, not only transcription requests. */
+  agent?: boolean;
 }
 
 /**
@@ -32,10 +34,12 @@ export type ModelGenerationConfig = Pick<
   | 'maxRetries'
   | 'retryErrorCodes'
   | 'enableCacheControl'
+  | 'forceGlobalCacheScope'
   | 'schemaCompliance'
   | 'reasoning'
   | 'customHeaders'
   | 'extra_body'
+  | 'thinkingMandatory'
   | 'contextWindowSize'
   | 'modalities'
   | 'splitToolMedia'
@@ -56,7 +60,7 @@ export interface ModelConfig {
   envKey?: string;
   /** API endpoint override */
   baseUrl?: string;
-  /** Model capabilities, reserve for future use. Now we do not read this to determine multi-modal support or other capabilities. */
+  /** Explicit model capabilities used for safe feature routing. */
   capabilities?: ModelCapabilities;
   /** Generation configuration (sampling parameters) */
   generationConfig?: ModelGenerationConfig;
@@ -64,6 +68,8 @@ export interface ModelConfig {
   fastOnly?: boolean;
   /** When true, this model only appears in the voice model selector, not the main model list */
   voiceOnly?: boolean;
+  /** When true, this model only appears in the image generation model selector */
+  imageOnly?: boolean;
 }
 
 /**
@@ -101,6 +107,8 @@ export interface ResolvedModelConfig extends ModelConfig {
   envKey?: string;
   /** API base URL (always present, has default per authType) */
   baseUrl: string;
+  /** Exact optional baseUrl used in the registry key, before defaults. */
+  registryBaseUrl?: string;
   /** Generation config (always present, merged with defaults) */
   generationConfig: ModelGenerationConfig;
   /** Capabilities (always present, defaults to {}) */
@@ -120,12 +128,16 @@ export interface AvailableModel {
   contextWindowSize?: number;
   modalities?: InputModalities;
   baseUrl?: string;
+  /** Exact optional baseUrl used in the model registry key, before defaults. */
+  registryBaseUrl?: string;
   envKey?: string;
 
   /** When true, this model only appears in the fast model selector */
   fastOnly?: boolean;
   /** When true, this model only appears in the voice model selector */
   voiceOnly?: boolean;
+  /** When true, this model only appears in the image generation model selector */
+  imageOnly?: boolean;
 
   /** Whether this is a runtime model (not from modelProviders) */
   isRuntimeModel?: boolean;

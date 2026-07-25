@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
@@ -110,6 +111,114 @@ describe('qwen-triage tmux workflow', () => {
     expect(cleanStep).toContain('rm -f /tmp/stage-*.md');
     expect(cleanStep).toContain('echo "stale agent state cleaned"');
     expect(runStep).toContain("QWEN_HOME: '${{ runner.temp }}/qwen-home'");
+  });
+
+  it('passes triage output through env before bash reads it', () => {
+    const checkStep = step('Check triage response');
+
+    expect(checkStep).toContain(
+      "RESPONSE: '${{ steps.triage.outputs.summary }}'",
+    );
+    expect(checkStep).not.toContain(
+      'RESPONSE="${{ steps.triage.outputs.summary }}"',
+    );
+    expect(checkStep).toContain('if [[ -z "${RESPONSE}"');
+  });
+
+  it('tells an action crash apart from a silent agent, and replays both', () => {
+    const checkStep = step('Check triage response');
+    // The outcome must arrive through env like RESPONSE does — inlining the
+    // expression into the script would be the injection shape this step
+    // already avoids for RESPONSE.
+    expect(checkStep).toContain(
+      "TRIAGE_OUTCOME: '${{ steps.triage.outcome }}'",
+    );
+    expect(checkStep).not.toContain('TRIAGE_OUTCOME="${{');
+
+    const body = checkStep.match(/run: \|-\n([\s\S]*)$/)?.[1];
+    expect(body).toBeTruthy();
+    const script = body.replace(/^ {10}/gm, '');
+    const run = (env) => {
+      const proc = spawnSync('bash', ['-c', script], {
+        env: {
+          ...process.env,
+          RESPONSE: '',
+          TRIAGE_OUTCOME: 'success',
+          ...env,
+        },
+        encoding: 'utf8',
+      });
+      return { status: proc.status, out: `${proc.stdout}${proc.stderr}` };
+    };
+
+    // A crashed action: no model call happened, so nothing about the PR can
+    // explain it and the guidance must say "re-run", not "read the log" —
+    // the install runs under `npm --silent`, so there is no log to read.
+    const crashed = run({ TRIAGE_OUTCOME: 'failure' });
+    expect(crashed.status).not.toBe(0);
+    expect(crashed.out).toContain('Triage did not start');
+    expect(crashed.out).toContain('re-run the failed job');
+    expect(crashed.out).not.toContain('Triage silent failure');
+
+    // A completed action with no summary IS worth reading the step output for.
+    const silent = run({ TRIAGE_OUTCOME: 'success' });
+    expect(silent.status).not.toBe(0);
+    expect(silent.out).toContain('Triage silent failure');
+    expect(silent.out).toContain('model or prompt problem');
+    expect(silent.out).not.toContain('Triage did not start');
+
+    // A real response still passes, and 'null' still counts as no response.
+    expect(run({ RESPONSE: 'triaged' }).status).toBe(0);
+    expect(run({ RESPONSE: 'null' }).status).not.toBe(0);
+  });
+
+  it('notifies the author when a manual triage re-run posts no review', () => {
+    const notifyStep = step('Notify silent triage re-run');
+
+    expect(notifyStep).toContain("github.event_name == 'issue_comment'");
+    expect(notifyStep).toContain('github.event.issue.pull_request');
+    expect(notifyStep).toContain(
+      "startsWith(github.event.comment.body, '@qwen-code /triage')",
+    );
+    expect(notifyStep).toContain('--method GET');
+    expect(notifyStep).toContain('--paginate');
+    expect(notifyStep).toContain('any(.[][];');
+    expect(notifyStep).toContain('.user.login == $bot');
+    expect(notifyStep).toContain('.submitted_at != null');
+    expect(notifyStep).toContain('.submitted_at >= $since');
+    expect(notifyStep).not.toContain('.state == "APPROVED"');
+    expect(notifyStep).toContain('HAS_REVIEW=false');
+    expect(notifyStep).toContain(
+      'gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER/comments"',
+    );
+    expect(notifyStep).toContain('<!-- qwen-triage stage=rerun-summary -->');
+    expect(notifyStep).toContain(
+      'Triage re-run completed without a new review.',
+    );
+    expect(notifyStep).not.toContain('-X PATCH');
+  });
+
+  it('posts an early live-progress status comment and finalizes the same one', () => {
+    const statusStep = step('Post triage status comment');
+    // Announced up front (before the long agent step) with the live run link.
+    expect(statusStep).toContain('<!-- qwen-triage stage=status -->');
+    expect(statusStep).toContain('actions/runs/${{ github.run_id }}');
+    expect(statusStep).toContain('watch live progress');
+    // Upsert by marker so a re-run reuses the one comment instead of stacking.
+    expect(statusStep).toContain('contains($m)');
+    expect(statusStep).toContain('--method PATCH');
+    // Best-effort: a failed status post warns and continues, never fails triage.
+    expect(statusStep).toContain('set -uo pipefail');
+    expect(statusStep).toContain('continuing.');
+
+    const finalizeStep = step('Finalize triage status comment');
+    // Runs on both outcomes and edits the SAME marker comment (no second post).
+    expect(finalizeStep).toContain('<!-- qwen-triage stage=status -->');
+    expect(finalizeStep).toContain('success() || failure()');
+    expect(finalizeStep).toContain('steps.triage.outcome');
+    expect(finalizeStep).toContain('--method PATCH');
+    expect(finalizeStep).toContain('Qwen Triage finished');
+    expect(finalizeStep).toContain('ended early');
   });
 
   it('reports timeout and infra-error without claiming the flow was exercised', () => {

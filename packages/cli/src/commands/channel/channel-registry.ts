@@ -1,4 +1,14 @@
-import type { ChannelPlugin } from '@qwen-code/channel-base';
+import type {
+  ChannelConfigFieldDescriptor,
+  ChannelPlugin,
+} from '@qwen-code/channel-base';
+
+export interface ChannelTypeDescriptor {
+  type: string;
+  displayName: string;
+  manageable: boolean;
+  fields: readonly ChannelConfigFieldDescriptor[];
+}
 
 const registry = new Map<string, ChannelPlugin>();
 let builtinsPromise: Promise<void> | null = null;
@@ -10,6 +20,7 @@ function ensureBuiltins(): Promise<void> {
         { name: 'telegram', promise: import('@qwen-code/channel-telegram') },
         { name: 'weixin', promise: import('@qwen-code/channel-weixin') },
         { name: 'dingtalk', promise: import('@qwen-code/channel-dingtalk') },
+        { name: 'wecom', promise: import('@qwen-code/channel-wecom') },
         { name: 'feishu', promise: import('@qwen-code/channel-feishu') },
         { name: 'qqbot', promise: import('@qwen-code/channel-qqbot') },
       ];
@@ -50,4 +61,18 @@ export async function getPlugin(
 export async function supportedTypes(): Promise<string[]> {
   await ensureBuiltins();
   return [...registry.keys()];
+}
+
+export async function supportedChannelCatalog(): Promise<
+  ChannelTypeDescriptor[]
+> {
+  await ensureBuiltins();
+  return [...registry.values()].map(
+    ({ channelType, displayName, management }) => ({
+      type: channelType,
+      displayName,
+      manageable: management !== undefined,
+      fields: management?.fields ?? [],
+    }),
+  );
 }
