@@ -855,7 +855,7 @@ export class GeminiClient {
   }
 
   private getCachedGitStatus(): string | null {
-    if (this.config.getSkipGitStatus()) {
+    if (this.config.getSkipGitStatus?.()) {
       return null;
     }
     if (this.cachedGitStatus === undefined) {
